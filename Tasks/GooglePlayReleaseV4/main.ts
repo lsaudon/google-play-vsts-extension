@@ -74,6 +74,9 @@ async function run(): Promise<void> {
         const uploadNativeDebugSymbols: boolean = tl.getBoolInput('shouldUploadNativeDebugSymbols', false) && (action === 'SingleApk' || action === 'SingleBundle');
         const nativeDebugSymbolsFilePattern: string = tl.getInput('nativeDebugSymbolsFile');
 
+        const uploadMappingFiles: boolean = tl.getBoolInput('shouldUploadMappingFiles', false) && (action === 'MultiApkAab');
+        const uploadNativeDebugSymbolFiles: boolean = tl.getBoolInput('shouldUploadNativeDebugSymbolFiles', false) && (action === 'MultiApkAab');
+
         const changesNotSentForReview: boolean = tl.getBoolInput('changesNotSentForReview');
 
         const releaseName: string = tl.getInput('releaseName', false);
@@ -158,6 +161,29 @@ async function run(): Promise<void> {
                         }
                     }
                 }
+
+                if (uploadMappingFiles) {
+                    const mappingFilePath: string | null = fileHelper.getMappingFile(apkFile);
+
+                    if (mappingFilePath !== null) {
+                        tl.debug(`Uploading ${mappingFilePath} for version code ${apk.versionCode}`);
+                        await googleutil.uploadDeobfuscation(edits, mappingFilePath, packageName, apk.versionCode);
+                    } else {
+                        tl.warning(tl.loc('NotFoundMappingFile', apk.versionCode));
+                    }
+                }
+
+                if (uploadNativeDebugSymbolFiles) {
+                    const nativeDebugSymbolsFilePath: string | null = fileHelper.getSymbolsFile(apkFile);
+
+                    if (nativeDebugSymbolsFilePath !== null) {
+                        tl.debug(`Uploading ${nativeDebugSymbolsFilePath} for version code ${apk.versionCode}`);
+                        await googleutil.uploadNativeDeobfuscation(edits, nativeDebugSymbolsFilePath, packageName, apk.versionCode);
+                    } else {
+                        tl.warning(tl.loc('NotFoundSymbolsFile', apk.versionCode));
+                    }
+                }
+
                 versionCodes.push(apk.versionCode);
             }
 
